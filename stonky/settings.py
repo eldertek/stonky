@@ -5,7 +5,6 @@ from pathlib import Path
 from textwrap import fill
 from typing import Dict, List, Optional
 
-from pkg_resources import resource_filename
 
 from stonky.typedef import (
     CURRENCY_CHOICES,
@@ -93,14 +92,23 @@ class Settings:
     def _get_config(self):
         parser = ConfigParser(allow_no_value=True, inline_comment_prefixes=(";", "#"))
         if not self.config_path.exists():
-            self.config_path = Path(resource_filename("stonky", "__example.cfg"))
-        parser.read_string(self.config_path.read_text())
+            self.config_path = Path(__file__).parent / "__example.cfg"
+        parser.read_string(self.config_path.read_text(encoding="utf-8"))
         if "positions" in parser:
             for ticket, amount in parser.items("positions"):
+                if "=" in amount:
+                    parts = amount.rsplit("=", 1)
+                    ticket = f"{ticket}={parts[0]}".upper()
+                    amount = parts[1]
                 amount = float(amount.replace(",", ""))
                 self.positions[ticket.upper()] = amount
         if "watchlist" in parser:
-            tickets = [line[0].upper() for line in parser.items("watchlist")]
+            tickets = []
+            for line in parser.items("watchlist"):
+                if line[1] is not None:
+                    tickets.append(f"{line[0]}={line[1]}".upper())
+                else:
+                    tickets.append(line[0].upper())
             self.watchlist += tickets
         if "cash" in parser:
             for currency, amount in parser.items("cash"):

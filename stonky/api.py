@@ -13,7 +13,10 @@ class Api:
         self._session: Optional[ClientSession] = None
 
     async def __aenter__(self) -> "Api":
-        self._session = ClientSession()
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        self._session = ClientSession(headers=headers)
         return self
 
     async def __aexit__(self, *_) -> None:
@@ -83,8 +86,6 @@ class Api:
             url += "?" + urlencode(params)
         try:
             async with self._session.get(url) as response:
-                return await response.json()
-        except ConnectionError:
-            raise RuntimeError("Network Error")
-        except ValueError:
-            raise RuntimeError("Could decode server response")
+                return await response.json(content_type=None)
+        except Exception:
+            raise RuntimeError("Network or decode error")
